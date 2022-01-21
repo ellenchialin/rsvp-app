@@ -1,69 +1,95 @@
 import React, { useState } from 'react'
-import GuestList from './GuestList.js'
+import { v4 as uuidv4 } from 'uuid'
+
+import Header from './components/Header/Header'
+import MainContent from './components/MainContent/MainContent'
 
 function App() {
-  const [guests, setGuests] = useState([
-    { name: 'Treasure', isConfirmed: false },
-    { name: 'Nic', isConfirmed: true },
-    { name: 'Matt K', isConfirmed: false },
-  ])
+  const [guests, setGuests] = useState([])
+  const [isFiltered, setIsFiltered] = useState(false)
+  const [pendingGuest, setPendingGuest] = useState('')
 
-  const toggleConfirmation = (indexToChange) => {
+  const toggleFilter = () => {
+    setIsFiltered((prevIsFilted) => !prevIsFilted)
+  }
+
+  const handleNameInput = (e) => {
+    setPendingGuest(e.target.value)
+  }
+
+  const handleNewGuestSubmit = (e) => {
+    e.preventDefault()
+    setGuests((prevGuests) => [
+      {
+        id: uuidv4(),
+        name: pendingGuest,
+        isConfirmed: false,
+        isEditing: false,
+      },
+      ...prevGuests,
+    ])
+    setPendingGuest('')
+  }
+
+  const toggleGuestProperty = (property, id) => {
     setGuests((prevGuests) => {
-      prevGuests.map((guest, index) => {
-        console.log(guest)
-        if (index === indexToChange) {
-          return { ...guest, isConfirmed: !guest.isConfirmed }
-        }
-        return guest
+      return prevGuests.map((guest) => {
+        return guest.id === id
+          ? { ...guest, [property]: !guest[property] }
+          : guest
       })
     })
   }
 
-  // const getTotalInvited = () => guests.length
-  // getAttendingGuests = () =>
-  // getUnconfirmedGuests = () =>
+  const toggleConfirmation = (id) => toggleGuestProperty('isConfirmed', id)
+  const toggleEditing = (id) => toggleGuestProperty('isEditing', id)
+
+  const removeGuest = (id) => {
+    setGuests((prevGuests) => {
+      return prevGuests.filter((guest) => guest.id !== id)
+    })
+  }
+
+  const setNameAt = (name, idToChange) => {
+    setGuests((prevGuests) => {
+      return prevGuests.map((guest) => {
+        return guest.id === idToChange ? { ...guest, name } : guest
+      })
+    })
+  }
+
+  const getTotalInvited = () => guests.length
+  const getAttendingGuests = () => {
+    return guests.reduce(
+      (total, guest) => (guest.isConfirmed ? total + 1 : total),
+      0
+    )
+  }
+  const totalInvited = getTotalInvited()
+  const numberAttending = getAttendingGuests()
+  const numberUnconfirmed = totalInvited - numberAttending
 
   return (
     <div className='App'>
-      <header>
-        <h1>RSVP</h1>
-        <p>A Treehouse App</p>
-        <form>
-          <input type='text' placeholder='Invite Someone' />
-          <button type='submit' name='submit' value='submit'>
-            Submit
-          </button>
-        </form>
-      </header>
+      <Header
+        handleNewGuestSubmit={handleNewGuestSubmit}
+        handleNameInput={handleNameInput}
+        pendingGuest={pendingGuest}
+      />
 
-      <div className='main'>
-        <div>
-          <h2>Invitees</h2>
-          <label>
-            <input type='checkbox' /> Hide those who haven't responded
-          </label>
-        </div>
-
-        <table className='counter'>
-          <tbody>
-            <tr>
-              <td>Attending:</td>
-              <td>2</td>
-            </tr>
-            <tr>
-              <td>Unconfirmed:</td>
-              <td>1</td>
-            </tr>
-            <tr>
-              <td>Total:</td>
-              <td>3</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <GuestList guests={guests} toggleConfirmation={toggleConfirmation} />
-      </div>
+      <MainContent
+        toggleFilter={toggleFilter}
+        isFiltered={isFiltered}
+        totalInvited={totalInvited}
+        numberAttending={numberAttending}
+        numberUnconfirmed={numberUnconfirmed}
+        guests={guests}
+        toggleConfirmation={toggleConfirmation}
+        toggleEditing={toggleEditing}
+        setNameAt={setNameAt}
+        removeGuest={removeGuest}
+        pendingGuest={pendingGuest}
+      />
     </div>
   )
 }
